@@ -5,24 +5,33 @@ const SENIOR_ROLES = [
 const MOD_ROLE = process.env.MOD_ROLE;
 
 function isSenior(member) {
-  return SENIOR_ROLES.some(r => member.roles.cache.has(r));
+  if (!member) return false;
+  return SENIOR_ROLES.filter(Boolean).some(r => member.roles.cache.has(r));
 }
 
 function isMod(member) {
+  if (!member) return false;
+  if (!MOD_ROLE) return isSenior(member);
   return member.roles.cache.has(MOD_ROLE) || isSenior(member);
 }
 
-function requireSenior(interaction) {
+async function requireSenior(interaction) {
   if (!isSenior(interaction.member)) {
-    interaction.reply({ content: '🚫 You need Senior Staff permissions to use this command.', ephemeral: true });
+    await interaction.reply({
+      content: '🚫 You need **Senior Staff** permissions to use this command.',
+      ephemeral: true
+    });
     return false;
   }
   return true;
 }
 
-function requireMod(interaction) {
+async function requireMod(interaction) {
   if (!isMod(interaction.member)) {
-    interaction.reply({ content: '🚫 You need Moderator permissions to use this command.', ephemeral: true });
+    await interaction.reply({
+      content: '🚫 You need **Moderator** permissions to use this command.',
+      ephemeral: true
+    });
     return false;
   }
   return true;

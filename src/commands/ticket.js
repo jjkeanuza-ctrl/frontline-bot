@@ -17,6 +17,19 @@ module.exports = {
     const guild = interaction.guild;
     const user = interaction.member;
     const reason = interaction.options.getString('reason');
+
+    // Block duplicate tickets — one open ticket per user
+    const existing = guild.channels.cache.find(c =>
+      c.name.startsWith('ticket-fn') &&
+      c.permissionOverwrites.cache.has(user.id)
+    );
+
+    if (existing) {
+      return interaction.editReply({
+        content: `❌ You already have an open ticket: ${existing}\n\nPlease resolve your current ticket before opening a new one.`
+      });
+    }
+
     const num = nextTicket();
     const channelName = `ticket-fn${num}`;
 

@@ -33,6 +33,9 @@ client.once(Events.ClientReady, async (c) => {
 
   const { startStatusMonitor } = require('./tasks/statusMonitor');
   startStatusMonitor(client);
+
+  const { startCommitMonitor } = require('./tasks/commitMonitor');
+  startCommitMonitor(client);
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -55,5 +58,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
     await handleButton(interaction, client);
   }
 });
+
+// Keep-alive for Render free tier
+const http = require('http');
+http.createServer((req, res) => res.end('Frontline Bot alive')).listen(process.env.PORT || 3000);
 
 client.login(process.env.BOT_TOKEN);

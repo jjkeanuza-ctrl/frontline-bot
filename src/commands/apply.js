@@ -11,6 +11,19 @@ module.exports = {
 
     const guild = interaction.guild;
     const applicant = interaction.member;
+
+    // Block duplicate applications
+    const existing = guild.channels.cache.find(c =>
+      c.name.startsWith('staff-application-') &&
+      c.permissionOverwrites.cache.has(applicant.id)
+    );
+
+    if (existing) {
+      return interaction.editReply({
+        content: `❌ You already have an open staff application: ${existing}\n\nPlease wait for staff to review it before submitting another.`
+      });
+    }
+
     const num = nextApplication();
     const channelName = `staff-application-${num}`;
 

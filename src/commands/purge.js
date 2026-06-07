@@ -8,7 +8,7 @@ module.exports = {
     .addIntegerOption(o => o.setName('amount').setDescription('Number of messages to delete (1-100)').setMinValue(1).setMaxValue(100).setRequired(true)),
 
   async execute(interaction) {
-    if (!requireMod(interaction)) return;
+    if (!await requireMod(interaction)) return;
 
     const amount = interaction.options.getInteger('amount');
 

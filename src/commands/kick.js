@@ -10,7 +10,7 @@ module.exports = {
     .addStringOption(o => o.setName('reason').setDescription('Reason for kick').setRequired(false)),
 
   async execute(interaction, client) {
-    if (!requireSenior(interaction)) return;
+    if (!await requireSenior(interaction)) return;
 
     const target = interaction.options.getMember('user');
     const reason = interaction.options.getString('reason') || 'No reason provided';

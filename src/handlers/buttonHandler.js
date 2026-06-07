@@ -1,16 +1,22 @@
-const { EmbedBuilder, PermissionsBitField } = require('discord.js');
+const { EmbedBuilder } = require('discord.js');
 const { isSenior, isMod } = require('../utils/permissions');
 const { modLog } = require('../utils/modLog');
 
 async function handleButton(interaction, client) {
   const id = interaction.customId;
 
-  // ── APPLICATION BUTTONS ──
+  // ── APPLICATION BUTTONS (Senior Staff only) ──
   if (id.startsWith('app_')) {
-    const [, action, channelId, applicantId] = id.split('_');
+    const parts = id.split('_');
+    const action = parts[1];
+    const channelId = parts[2];
+    const applicantId = parts[3];
 
     if (!isSenior(interaction.member)) {
-      return interaction.reply({ content: '🚫 Only Senior Staff can action applications.', ephemeral: true });
+      return interaction.reply({
+        content: '🚫 Only **Senior Staff** can action staff applications.',
+        ephemeral: true
+      });
     }
 
     const appChannel = await client.channels.fetch(channelId).catch(() => null);
@@ -20,28 +26,40 @@ async function handleButton(interaction, client) {
       const embed = new EmbedBuilder()
         .setColor(0x2ecc71)
         .setTitle('✅ Application Accepted')
-        .setDescription(`Congratulations **${applicant?.user.username || 'Applicant'}**! Your staff application has been **accepted**.\n\nWelcome to the Frontline Networks team. A senior staff member will be in touch shortly with next steps.`)
+        .setDescription(
+          `Congratulations **${applicant?.user.username || 'Applicant'}**!\n\n` +
+          `Your staff application has been **accepted**. Welcome to the Frontline Networks team.\n` +
+          `A senior staff member will be in touch with your next steps shortly.`
+        )
         .setFooter({ text: `Accepted by ${interaction.user.tag}` })
         .setTimestamp();
 
-      await appChannel?.send({ embeds: [embed] });
-      await applicant?.send(`✅ Your staff application at **Frontline Networks** has been **accepted**! Check ${appChannel} for details.`).catch(() => {});
-      await interaction.reply({ content: `✅ Application accepted.`, ephemeral: true });
+      if (appChannel) await appChannel.send({ embeds: [embed] });
+      await applicant?.send(
+        `✅ Your staff application at **Frontline Networks** has been **accepted**! Check your application channel for details.`
+      ).catch(() => {});
+      await interaction.reply({ content: '✅ Application accepted.', ephemeral: true });
 
     } else if (action === 'deny') {
       const embed = new EmbedBuilder()
         .setColor(0xe74c3c)
         .setTitle('❌ Application Denied')
-        .setDescription(`Thank you for applying **${applicant?.user.username || 'Applicant'}**. Unfortunately your application has been **denied** at this time.\n\nYou are welcome to apply again in the future. If you have questions, please contact a staff member.`)
+        .setDescription(
+          `Thank you for applying **${applicant?.user.username || 'Applicant'}**.\n\n` +
+          `Unfortunately your application has been **denied** at this time.\n` +
+          `You are welcome to apply again in the future.`
+        )
         .setFooter({ text: `Denied by ${interaction.user.tag}` })
         .setTimestamp();
 
-      await appChannel?.send({ embeds: [embed] });
-      await applicant?.send(`❌ Your staff application at **Frontline Networks** has been **denied**. You may apply again in the future.`).catch(() => {});
-      await interaction.reply({ content: `❌ Application denied.`, ephemeral: true });
+      if (appChannel) await appChannel.send({ embeds: [embed] });
+      await applicant?.send(
+        `❌ Your staff application at **Frontline Networks** has been **denied**. You may apply again in the future.`
+      ).catch(() => {});
+      await interaction.reply({ content: '❌ Application denied. Channel deleting in 10 seconds.', ephemeral: true });
 
       setTimeout(async () => {
-        await appChannel?.delete('Application denied — auto-cleanup').catch(() => {});
+        await appChannel?.delete('Application denied — auto cleanup').catch(() => {});
       }, 10000);
 
     } else if (action === 'close') {
@@ -52,21 +70,29 @@ async function handleButton(interaction, client) {
         .setFooter({ text: `Closed by ${interaction.user.tag}` })
         .setTimestamp();
 
-      await appChannel?.send({ embeds: [embed] });
-      await interaction.reply({ content: '🔒 Application closed. Channel will delete in 10 seconds.', ephemeral: true });
+      if (appChannel) await appChannel.send({ embeds: [embed] });
+      await interaction.reply({ content: '🔒 Application closed. Channel deleting in 10 seconds.', ephemeral: true });
 
       setTimeout(async () => {
         await appChannel?.delete('Application closed').catch(() => {});
       }, 10000);
     }
+
+    return;
   }
 
-  // ── TICKET BUTTONS ──
+  // ── TICKET BUTTONS (Mod role + Senior Staff) ──
   if (id.startsWith('ticket_')) {
-    const [, action, channelId, openerId] = id.split('_');
+    const parts = id.split('_');
+    const action = parts[1];
+    const channelId = parts[2];
+    const openerId = parts[3];
 
     if (!isMod(interaction.member)) {
-      return interaction.reply({ content: '🚫 Only staff can action tickets.', ephemeral: true });
+      return interaction.reply({
+        content: '🚫 Only **Staff** can action tickets.',
+        ephemeral: true
+      });
     }
 
     const ticketChannel = await client.channels.fetch(channelId).catch(() => null);
@@ -79,8 +105,8 @@ async function handleButton(interaction, client) {
         .setFooter({ text: `Closed by ${interaction.user.tag}` })
         .setTimestamp();
 
-      await ticketChannel?.send({ embeds: [embed] });
-      await modLog(client, 'CLOSE', { tag: `Ticket ${channelId}`, id: channelId }, interaction.member, 'Ticket closed');
+      if (ticketChannel) await ticketChannel.send({ embeds: [embed] });
+      await modLog(client, 'CLOSE', { tag: `Ticket channel`, id: channelId }, interaction.member, 'Ticket closed');
       await interaction.reply({ content: '🔒 Ticket closed.', ephemeral: true });
 
       setTimeout(async () => {
@@ -91,12 +117,17 @@ async function handleButton(interaction, client) {
       const embed = new EmbedBuilder()
         .setColor(0x4fc3f7)
         .setTitle('✋ Ticket Claimed')
-        .setDescription(`This ticket has been claimed by **${interaction.user.tag}**.\n\nThey will be assisting you shortly.`)
+        .setDescription(
+          `This ticket has been claimed by **${interaction.user.tag}**.\n` +
+          `They will be assisting you shortly.`
+        )
         .setTimestamp();
 
-      await ticketChannel?.send({ embeds: [embed] });
-      await interaction.reply({ content: `✅ You have claimed this ticket.`, ephemeral: true });
+      if (ticketChannel) await ticketChannel.send({ embeds: [embed] });
+      await interaction.reply({ content: '✅ You have claimed this ticket.', ephemeral: true });
     }
+
+    return;
   }
 }
 

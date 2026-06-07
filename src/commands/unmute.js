@@ -10,7 +10,7 @@ module.exports = {
     .addStringOption(o => o.setName('reason').setDescription('Reason').setRequired(false)),
 
   async execute(interaction, client) {
-    if (!requireMod(interaction)) return;
+    if (!await requireMod(interaction)) return;
 
     const target = interaction.options.getMember('user');
     const reason = interaction.options.getString('reason') || 'No reason provided';

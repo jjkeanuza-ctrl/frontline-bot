@@ -30,9 +30,6 @@ async function queryServer() {
 }
 
 function buildEmbed(result) {
-  const now = new Date();
-  const timeStr = `<t:${Math.floor(now.getTime() / 1000)}:R>`;
-
   const embed = new EmbedBuilder()
     .setColor(result.online ? 0x4fc3f7 : 0x4a6a80)
     .setTitle('📡 Frontline Networks — Server Status')
@@ -40,14 +37,12 @@ function buildEmbed(result) {
       ? '🟢 **The server is online and accepting players.**'
       : '🔴 **The server is currently offline.**')
     .addFields(
-      { name: '🎮 Game',    value: 'Garry\'s Mod — PoliceRP', inline: true },
+      { name: '🎮 Game',    value: "Garry's Mod — PoliceRP", inline: true },
       { name: '📊 Status',  value: result.online ? '**Online**' : '**Offline**', inline: true },
       { name: '👥 Players', value: result.online ? `**${result.players}/${result.maxPlayers}**` : '**0/0**', inline: true },
       { name: '🗺️ Map',     value: result.online ? (result.map || 'Unknown') : '—', inline: true },
       { name: '🌐 Website', value: '[frontlinenetx.net](https://frontlinenetx.net)', inline: true },
-      { name: '💬 Discord', value: '[discord.gg/7fahT24btF](https://discord.gg/7fahT24btF)', inline: true },
     )
-    .setFooter({ text: `Last updated ${timeStr} • Updates every 60s` })
     .setTimestamp();
 
   return embed;
@@ -70,7 +65,6 @@ async function startStatusMonitor(client) {
         }
       }
 
-      // No existing message — send a new one
       await channel.bulkDelete(10, true).catch(() => {});
       const msg = await channel.send({ embeds: [embed] });
       statusMessageId = msg.id;

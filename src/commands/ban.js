@@ -11,7 +11,7 @@ module.exports = {
     .addIntegerOption(o => o.setName('days').setDescription('Delete message history (days)').setMinValue(0).setMaxValue(7).setRequired(false)),
 
   async execute(interaction, client) {
-    if (!requireSenior(interaction)) return;
+    if (!await requireSenior(interaction)) return;
 
     const target = interaction.options.getMember('user');
     const reason = interaction.options.getString('reason') || 'No reason provided';
