@@ -9,17 +9,19 @@ module.exports = {
   async execute(interaction) {
     await interaction.deferReply();
 
-    const result = await queryServer();
+    const data = await queryServer();
 
     const embed = new EmbedBuilder()
-      .setColor(result.online ? 0x2ecc71 : 0xe74c3c)
-      .setTitle(`${result.online ? '🟢' : '🔴'} Frontline Networks — GMOD PoliceRP`)
+      .setColor(data.online ? 0x4fc3f7 : 0xe74c3c)
+      .setTitle(`${data.online ? '🟢' : '🔴'} Frontline Networks — GMOD`)
       .addFields(
-        { name: 'Status',  value: result.online ? '**Online**' : '**Offline**', inline: true },
-        { name: 'Players', value: result.online ? `**${result.players}/${result.maxPlayers}**` : '**0/0**', inline: true },
-        { name: 'Map',     value: result.online ? (result.map || 'Unknown') : 'N/A', inline: true },
+        { name: '📊 Status',   value: data.online ? '**Online**' : '**Offline**',                           inline: true },
+        { name: '👥 Players',  value: data.online ? `**${data.players}/${data.maxplayers}**` : '**0/0**',   inline: true },
+        { name: '🕹️ Gamemode', value: data.online && data.gamemode ? `**${data.gamemode}**` : '—',           inline: true },
+        { name: '🗺️ Map',      value: data.online && data.map      ? `**${data.map}**`      : '—',           inline: true },
+        { name: '🖥️ Server',   value: data.online && data.name     ? data.name              : 'Frontline Networks', inline: true },
+        { name: '🌐 Website',  value: '[frontlinenetx.net](https://frontlinenetx.net)',                     inline: true },
       )
-      .setFooter({ text: result.online ? `IP: ${process.env.GMOD_IP}:${process.env.GMOD_PORT}` : 'Server is currently offline' })
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });

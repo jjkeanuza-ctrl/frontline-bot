@@ -1,49 +1,44 @@
 const { EmbedBuilder } = require('discord.js');
 
+const WORKER_URL = 'https://frontline-status.jjkeanuza.workers.dev';
+
 let statusMessageId = null;
 
+// Query via the same Cloudflare Worker the website uses — single source of truth
 async function queryServer() {
-  const ip = process.env.GMOD_IP;
-  const port = parseInt(process.env.GMOD_PORT || '27015');
-
-  if (!ip || ip === 'YOUR_SERVER_IP') {
-    return { online: false, players: 0, maxPlayers: 0, map: null };
-  }
-
   try {
-    const Gamedig = require('gamedig');
-    const state = await Gamedig.query({
-      type: 'garrysmod',
-      host: ip,
-      port: port,
+    const res = await fetch(WORKER_URL, {
+      headers: { 'User-Agent': 'FrontlineBot/1.0' },
+      signal: AbortSignal.timeout(10000),
     });
-    return {
-      online: true,
-      players: state.players.length,
-      maxPlayers: state.maxplayers,
-      map: state.map,
-      name: state.name,
-    };
-  } catch {
-    return { online: false, players: 0, maxPlayers: 0, map: null };
+    if (!res.ok) throw new Error(`Worker returned ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error('Status query failed:', err.message);
+    return { online: false, players: 0, maxplayers: 0, map: null, name: null, gamemode: null };
   }
 }
 
-function buildEmbed(result) {
+function buildEmbed(data) {
   const embed = new EmbedBuilder()
-    .setColor(result.online ? 0x4fc3f7 : 0x4a6a80)
+    .setColor(data.online ? 0x4fc3f7 : 0x4a6a80)
     .setTitle('📡 Frontline Networks — Server Status')
-    .setDescription(result.online
+    .setDescription(data.online
       ? '🟢 **The server is online and accepting players.**'
       : '🔴 **The server is currently offline.**')
     .addFields(
-      { name: '🎮 Game',    value: "Garry's Mod — PoliceRP", inline: true },
-      { name: '📊 Status',  value: result.online ? '**Online**' : '**Offline**', inline: true },
-      { name: '👥 Players', value: result.online ? `**${result.players}/${result.maxPlayers}**` : '**0/0**', inline: true },
-      { name: '🗺️ Map',     value: result.online ? (result.map || 'Unknown') : '—', inline: true },
-      { name: '🌐 Website', value: '[frontlinenetx.net](https://frontlinenetx.net)', inline: true },
+      { name: '🎮 Game',     value: "Garry's Mod",                                       inline: true },
+      { name: '📊 Status',   value: data.online ? '**Online**' : '**Offline**',          inline: true },
+      { name: '👥 Players',  value: data.online ? `**${data.players}/${data.maxplayers}**` : '**0/0**', inline: true },
+      { name: '🕹️ Gamemode', value: data.online && data.gamemode ? `**${data.gamemode}**` : '—',  inline: true },
+      { name: '🗺️ Map',      value: data.online && data.map      ? `**${data.map}**`     : '—',  inline: true },
+      { name: '🌐 Website',  value: '[frontlinenetx.net](https://frontlinenetx.net)',    inline: true },
     )
     .setTimestamp();
+
+  if (data.online && data.name) {
+    embed.setFooter({ text: data.name });
+  }
 
   return embed;
 }
@@ -52,11 +47,12 @@ async function startStatusMonitor(client) {
   async function update() {
     try {
       const channel = await client.channels.fetch(process.env.SERVER_STATUS_CHANNEL).catch(() => null);
-      if (!channel) return;
+      if (!channel) { console.warn('Status channel not found'); return; }
 
-      const result = await queryServer();
-      const embed = buildEmbed(result);
+      const data  = await queryServer();
+      const embed = buildEmbed(data);
 
+      // Try to edit existing message first
       if (statusMessageId) {
         const existing = await channel.messages.fetch(statusMessageId).catch(() => null);
         if (existing) {
@@ -65,15 +61,17 @@ async function startStatusMonitor(client) {
         }
       }
 
+      // No existing message — clear channel and post fresh
       await channel.bulkDelete(10, true).catch(() => {});
       const msg = await channel.send({ embeds: [embed] });
       statusMessageId = msg.id;
 
     } catch (err) {
-      console.error('Status monitor error:', err);
+      console.error('Status monitor error:', err.message);
     }
   }
 
+  // Run immediately then every 60 seconds
   await update();
   setInterval(update, 60 * 1000);
 }

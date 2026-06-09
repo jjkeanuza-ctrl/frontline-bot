@@ -1,6 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
 
-const GITHUB_USER = 'Keanu';
+const GITHUB_USER = 'YOUR_GITHUB_USERNAME';
 const GITHUB_REPO = 'frontline-bot';
 const COMMITS_CHANNEL = '1513246915263991928';
 const CHECK_INTERVAL = 5 * 60 * 1000; // every 5 minutes
